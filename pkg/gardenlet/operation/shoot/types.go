@@ -89,6 +89,9 @@ type Shoot struct {
 
 	// InternalClusterDomain is empty for self-hosted shoots, which only have an external domain (Shoot.spec.dns.domain).
 	InternalClusterDomain *string
+	// PriorInternalClusterDomain is the internal domain which is replaced during a running domain migration.
+	// It is nil if no domain migration is running.
+	PriorInternalClusterDomain *string
 	// ExternalClusterDomain is nil if Shoot.Spec.DNS.Domain is unset.
 	ExternalClusterDomain *string
 	// PriorExternalClusterDomain is the external domain which is replaced during a running domain migration.
