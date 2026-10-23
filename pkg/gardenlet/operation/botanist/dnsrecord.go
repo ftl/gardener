@@ -113,11 +113,11 @@ func (b *Botanist) DefaultInternalDNSRecord() extensionsdnsrecord.Interface {
 	var credentialsDeployer extensionsdnsrecord.CredentialsDeployFunc
 
 	if b.NeedsInternalDNS() {
-		values.Type = b.Garden.InternalDomain.Provider
-		if b.Garden.InternalDomain.Zone != "" {
-			values.Zone = &b.Garden.InternalDomain.Zone
+		values.Type = b.Shoot.InternalDomain.Provider
+		if b.Shoot.InternalDomain.Zone != "" {
+			values.Zone = &b.Shoot.InternalDomain.Zone
 		}
-		credentialsDeployer = extensionsdnsrecord.CredentialsDeployerFromCredentials(b.Garden.InternalDomain.Credentials, b.Shoot.GetInfo())
+		credentialsDeployer = extensionsdnsrecord.CredentialsDeployerFromCredentials(b.Shoot.InternalDomain.Credentials, b.Shoot.GetInfo())
 		values.DNSName = v1beta1helper.GetAPIServerDomain(*b.Shoot.InternalClusterDomain)
 	}
 
