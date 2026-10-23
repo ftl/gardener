@@ -25,6 +25,7 @@ import (
 	gardencorev1beta1listers "github.com/gardener/gardener/pkg/client/core/listers/core/v1beta1"
 	gardensecurityinformers "github.com/gardener/gardener/pkg/client/security/informers/externalversions"
 	gardensecurityv1alpha1listers "github.com/gardener/gardener/pkg/client/security/listers/security/v1alpha1"
+	"github.com/gardener/gardener/pkg/features"
 	plugin "github.com/gardener/gardener/plugin/pkg"
 	admissionutils "github.com/gardener/gardener/plugin/pkg/utils"
 )
@@ -164,6 +165,13 @@ func (v *ValidateSeed) validateSeedUpdate(a admission.Attributes) error {
 
 	if err := admissionutils.ValidateInternalDomainChangeForSeed(&oldSeed.Spec, &newSeed.Spec, newSeed.Name, v.shootLister, "Seed"); err != nil {
 		return err
+	}
+
+	// A gardenlet which has not observed the current generation can still assign a removed internal domain to a shoot.
+	if features.DefaultFeatureGate.Enabled(features.MutableShootDomains) &&
+		oldSeed.Status.ObservedGeneration != oldSeed.Generation &&
+		admissionutils.RemovedInternalDomains(&oldSeed.Spec, &newSeed.Spec).Len() > 0 {
+		return admission.NewForbidden(a, errors.New("cannot remove internal domains before the gardenlet has observed the current generation of the Seed"))
 	}
 
 	if err := admissionutils.ValidateDefaultDomainsChangeForSeed(&oldSeed.Spec, &newSeed.Spec, newSeed.Name, v.shootLister, v.secretLister, "Seed"); err != nil {

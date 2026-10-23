@@ -16,9 +16,12 @@ import (
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	securityv1alpha1 "github.com/gardener/gardener/pkg/apis/security/v1alpha1"
 	gardencoreinformers "github.com/gardener/gardener/pkg/client/core/informers/externalversions"
 	gardensecurityinformers "github.com/gardener/gardener/pkg/client/security/informers/externalversions"
+	"github.com/gardener/gardener/pkg/features"
+	"github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
 	. "github.com/gardener/gardener/plugin/pkg/seed/validator"
 )
@@ -137,6 +140,43 @@ var _ = Describe("validator", func() {
 					attrs := admission.NewAttributesRecord(newSeed, oldSeed, core.Kind("Seed").WithVersion("version"), "", seed.Name, core.Resource("seeds").WithVersion("version"), "", admission.Update, &metav1.UpdateOptions{}, false, nil)
 
 					Expect(admissionHandler.Validate(context.TODO(), attrs, nil)).To(BeForbiddenError())
+				})
+
+				Context("with the MutableShootDomains feature gate", func() {
+					BeforeEach(func() {
+						DeferCleanup(test.WithFeatureGate(features.DefaultFeatureGate, features.MutableShootDomains, true))
+					})
+
+					It("should allow the removal of an internal domain that the shoots do not use", func() {
+						oldSeed.Spec.DNS.InternalDomains = []core.SeedDNSProviderConfig{{Domain: "bar.foo"}, {Domain: "foo.bar"}}
+						newSeed.Spec.DNS.InternalDomains = []core.SeedDNSProviderConfig{{Domain: "bar.foo"}}
+						oldSeed.Spec.DNS.Internal.Domain = "bar.foo"
+						Expect(coreInformerFactory.Core().V1beta1().Shoots().Informer().GetStore().Add(&shoot)).To(Succeed())
+						attrs := admission.NewAttributesRecord(newSeed, oldSeed, core.Kind("Seed").WithVersion("version"), "", seed.Name, core.Resource("seeds").WithVersion("version"), "", admission.Update, &metav1.UpdateOptions{}, false, nil)
+
+						Expect(admissionHandler.Validate(context.TODO(), attrs, nil)).To(Succeed())
+					})
+
+					It("should forbid the removal of an internal domain before the gardenlet observed the current generation", func() {
+						oldSeed.Spec.DNS.InternalDomains = []core.SeedDNSProviderConfig{{Domain: "bar.foo"}, {Domain: "foo.bar"}}
+						newSeed.Spec.DNS.InternalDomains = []core.SeedDNSProviderConfig{{Domain: "bar.foo"}}
+						oldSeed.Spec.DNS.Internal.Domain = "bar.foo"
+						oldSeed.Generation = 2
+						oldSeed.Status.ObservedGeneration = 1
+						attrs := admission.NewAttributesRecord(newSeed, oldSeed, core.Kind("Seed").WithVersion("version"), "", seed.Name, core.Resource("seeds").WithVersion("version"), "", admission.Update, &metav1.UpdateOptions{}, false, nil)
+
+						Expect(admissionHandler.Validate(context.TODO(), attrs, nil)).To(MatchError(ContainSubstring("before the gardenlet has observed the current generation")))
+					})
+
+					It("should forbid internal domain change when a shoot uses the former internal domain", func() {
+						shoot.Status.AdvertisedAddresses = []gardencorev1beta1.ShootAdvertisedAddress{
+							{Name: v1beta1constants.AdvertisedAddressInternal, URL: "https://api.shoot.project.internal.foo.bar"},
+						}
+						Expect(coreInformerFactory.Core().V1beta1().Shoots().Informer().GetStore().Add(&shoot)).To(Succeed())
+						attrs := admission.NewAttributesRecord(newSeed, oldSeed, core.Kind("Seed").WithVersion("version"), "", seed.Name, core.Resource("seeds").WithVersion("version"), "", admission.Update, &metav1.UpdateOptions{}, false, nil)
+
+						Expect(admissionHandler.Validate(context.TODO(), attrs, nil)).To(BeForbiddenError())
+					})
 				})
 			})
 
