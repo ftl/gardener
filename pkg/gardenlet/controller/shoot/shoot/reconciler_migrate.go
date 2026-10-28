@@ -383,6 +383,11 @@ func (r *Reconciler) runMigrateShootFlow(ctx context.Context, o *operation.Opera
 			Fn:           botanist.MigrateInternalDNSRecord,
 			Dependencies: flow.NewTaskIDs(waitUntilKubeAPIServerDeleted),
 		})
+		migratePriorInternalDNSRecord = g.Add(flow.Task{
+			Name:         "Migrating prior internal domain DNS record",
+			Fn:           botanist.MigratePriorInternalDNSRecord,
+			Dependencies: flow.NewTaskIDs(waitUntilKubeAPIServerDeleted),
+		})
 		syncPoint = flow.NewTaskIDs(
 			waitUntilExtensionsAfterKubeAPIServerDeleted,
 			waitUntilMachineResourcesDeleted,
@@ -393,7 +398,7 @@ func (r *Reconciler) runMigrateShootFlow(ctx context.Context, o *operation.Opera
 			Name:         "Deleting DNSRecords from the Shoot namespace",
 			Fn:           botanist.DestroyDNSRecords,
 			SkipIf:       !nonTerminatingNamespace,
-			Dependencies: flow.NewTaskIDs(syncPoint, migrateIngressDNSRecord, migrateExternalDNSRecord, migrateInternalDNSRecord),
+			Dependencies: flow.NewTaskIDs(syncPoint, migrateIngressDNSRecord, migrateExternalDNSRecord, migrateInternalDNSRecord, migratePriorInternalDNSRecord),
 		})
 		createETCDSnapshot = g.Add(flow.Task{
 			Name:         "Creating ETCD Snapshot",
