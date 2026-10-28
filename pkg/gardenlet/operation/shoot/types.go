@@ -193,6 +193,7 @@ type Extensions struct {
 	ExternalDNSRecord               dnsrecord.Interface
 	PriorExternalDNSRecord          dnsrecord.Interface
 	InternalDNSRecord               dnsrecord.Interface
+	PriorInternalDNSRecord          dnsrecord.Interface
 	IngressDNSRecord                dnsrecord.Interface
 	SelfHostedShootIngressDNSRecord dnsrecord.Interface
 	Extension                       extension.Interface

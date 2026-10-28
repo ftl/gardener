@@ -683,6 +683,8 @@ const (
 	LabelDNSRecordPriorExternal = "prior-external"
 	// LabelDNSRecordInternal is a constant for a label value for internal DNSRecord.
 	LabelDNSRecordInternal = "internal"
+	// LabelDNSRecordPriorInternal is a constant for a label value for the prior internal DNSRecord.
+	LabelDNSRecordPriorInternal = "prior-internal"
 	// LabelDNSRecordIngress is a constant for a label value for ingress DNSRecord.
 	LabelDNSRecordIngress = "ingress"
 
@@ -1004,6 +1006,8 @@ const (
 
 	// DNSRecordInternalName is a constant for DNSRecord objects used for the internal domain name.
 	DNSRecordInternalName = "internal"
+	// DNSRecordPriorInternalName is a constant for DNSRecord objects used for the prior internal domain name.
+	DNSRecordPriorInternalName = "prior-internal"
 	// DNSRecordExternalName is a constant for DNSRecord objects used for the external domain name.
 	DNSRecordExternalName = "external"
 	// DNSRecordPriorExternalName is a constant for DNSRecord objects used for the prior external domain name.
